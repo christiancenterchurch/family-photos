@@ -98,6 +98,17 @@
     .pair { display: grid; gap: 0 12px; }
     @media (min-width: 480px) { .pair { grid-template-columns: 1fr 1fr; } }
     .help { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); }
+    .note {
+      margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: #eaf7ef;
+      border-left: 4px solid var(--holly); font-size: 15px; font-weight: 600; color: var(--ink);
+    }
+    .reach {
+      margin: 22px auto 0; max-width: 360px; padding: 18px 16px; border-radius: 12px;
+      background: rgba(251, 248, 241, .08); border: 1.5px solid #46695a;
+    }
+    .reach h3 { margin: 0 0 10px; font-size: 19px; font-weight: 800; color: #fff; }
+    .reach a, .reach .val { display: block; font-size: 22px; font-weight: 800; color: var(--gilt); text-decoration: none; margin: 6px 0; word-break: break-word; }
+    .reach .soon { color: #9fb0a6; font-style: italic; font-size: 16px; }
     .count { display: flex; align-items: center; gap: 10px; }
     .count button {
       width: 48px; height: 48px; flex: none; border-radius: 8px; border: 1.5px solid var(--paper-edge);
@@ -199,22 +210,17 @@
 
     <section class="print" aria-labelledby="famTitle">
       <h2 id="famTitle">Tell us about your family</h2>
-      <p class="lede">We'll only use this to reach you about your photo time.</p>
+      <p class="lede">We'll use this to send your photos and to reach you about your time.</p>
 
       <label for="name">Your name</label>
       <input id="name" name="name" autocomplete="name" maxlength="80" required>
 
-      <div class="pair">
-        <div>
-          <label for="phone">Phone</label>
-          <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30">
-        </div>
-        <div>
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" autocomplete="email" maxlength="120">
-        </div>
-      </div>
-      <p class="help">A phone number or an email is enough.</p>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" maxlength="120" required aria-describedby="emailNote">
+      <p class="note" id="emailNote">This is how you'll receive your family photos, so please double-check it.</p>
+
+      <label for="phone">Phone <span class="opt">Optional</span></label>
+      <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30">
 
       <label for="people">People in the photo</label>
       <div class="count">
@@ -247,6 +253,11 @@
     </div>
     <h2>Your time is reserved</h2>
     <p>Come to Christian Center Church a few minutes early. We can't wait to meet your family!</p>
+    <p>Your photos will be sent to <b id="doneEmail"></b>.</p>
+    <div class="reach" id="reach">
+      <h3>Need to change or cancel? Let us know.</h3>
+      <div id="reachLines"><span class="soon">Phone and email coming soon.</span></div>
+    </div>
     <div class="actions">
       <a id="calLink" href="#" target="_blank" rel="noopener">Add to my calendar</a>
       <a class="quiet" id="dirLink" href="#" target="_blank" rel="noopener">Get directions</a>
@@ -303,6 +314,7 @@
     state.maxPeople = d.maxPeople;
     $('people').max = d.maxPeople;
     renderContact(d.contactPhone, d.contactEmail);
+    renderReach(d.contactPhone, d.contactEmail);
     if (!d.open) { $('closed').hidden = false; return; }
     $('form').hidden = false;
     drawTimes(d.slots);
@@ -333,6 +345,24 @@
       line.appendChild(m);
     }
     line.appendChild(document.createTextNode('.'));
+  }
+
+  function renderReach(phone, email) {
+    if (!phone && !email) return;
+    var box = $('reachLines');
+    box.textContent = '';
+    if (phone) {
+      var a = document.createElement('a');
+      a.href = 'tel:' + phone.replace(/[^\d+]/g, '');
+      a.textContent = phone;
+      box.appendChild(a);
+    }
+    if (email) {
+      var m = document.createElement('a');
+      m.href = 'mailto:' + email;
+      m.textContent = email;
+      box.appendChild(m);
+    }
   }
 
   function hourName(id) {
@@ -438,7 +468,8 @@
     };
     if (!f.slot) { showAlert('Choose a time first.'); $('pickTitle').scrollIntoView({ behavior: 'smooth' }); return; }
     if (f.name.length < 2) return showAlert('Add your name.', 'name');
-    if (!f.phone && !f.email) return showAlert('Add a phone number or an email so we can reach you.', 'phone');
+    if (!f.email) return showAlert('Add your email. That’s how we’ll send your photos.', 'email');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) return showAlert('Check your email address.', 'email');
 
     var btn = $('reserve');
     var label = btn.textContent;
@@ -466,9 +497,12 @@
     $('doneName').textContent = res.name;
     $('doneTime').textContent = res.slotLabel;
     $('doneDay').textContent = res.dateLabel;
+    $('doneEmail').textContent = $('email').value.trim();
     $('calLink').href = res.calendar;
     $('dirLink').href = res.directions;
     $('done').hidden = false;
+    document.querySelector('#contact p').hidden = true;
+    $('contactLine').hidden = true;
     $('polaroid').classList.add('developing');
     window.scrollTo(0, 0);
   }
